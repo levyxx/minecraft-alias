@@ -1,0 +1,15 @@
+name: MinecraftAlias
+main: com.levyxx.minecraftalias.AliasPlugin
+version: ${project.version}
+description: Manage custom command aliases for Minecraft Java Edition servers.
+author: levyxx
+api-version: "1.20"
+commands:
+  alias:
+    description: Manage custom aliases
+    usage: /alias <add|remove|list>
+    permission: minecraftalias.admin
+permissions:
+  minecraftalias.admin:
+    description: Allows creating, listing, and removing aliases.
+    default: op
