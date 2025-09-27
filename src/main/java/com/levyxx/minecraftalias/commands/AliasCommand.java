@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -52,25 +53,52 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
     }
 
     private void handleAdd(CommandSender sender, String[] args) {
-        if (args.length < 3) {
-            sender.sendMessage(PREFIX + ChatColor.YELLOW + "/alias add <exec_command...> <alias_command>");
+        if (args.length < 4) {
+            sender.sendMessage(PREFIX + ChatColor.YELLOW + "/alias add <exec_command...> by <alias_command...>");
             return;
         }
 
-        String aliasName = sanitizeAliasInput(args[args.length - 1]);
-        if (aliasName.isEmpty()) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "エイリアス名を正しく指定してください。");
+        int byIndex = -1;
+        for (int i = 1; i < args.length; i++) {
+            if ("by".equalsIgnoreCase(args[i])) {
+                byIndex = i;
+                break;
+            }
+        }
+
+        if (byIndex == -1) {
+            sender.sendMessage(PREFIX + ChatColor.RED + "\"by\" 区切りが見つかりませんでした。");
+            sender.sendMessage(ChatColor.GRAY + "例: /alias add gamemode creative by gm 1");
             return;
         }
 
-        String execCommand = sanitizeExecutionCommand(args);
+        if (byIndex == 1) {
+            sender.sendMessage(PREFIX + ChatColor.RED + "実行コマンドを指定してください。");
+            return;
+        }
+
+        if (byIndex >= args.length - 1) {
+            sender.sendMessage(PREFIX + ChatColor.RED + "エイリアス名を指定してください。");
+            return;
+        }
+
+        List<String> execTokens = new ArrayList<>(Arrays.asList(args).subList(1, byIndex));
+        List<String> aliasTokens = new ArrayList<>(Arrays.asList(args).subList(byIndex + 1, args.length));
+
+        String execCommand = sanitizeExecutionCommand(execTokens);
         if (execCommand.isEmpty()) {
             sender.sendMessage(PREFIX + ChatColor.RED + "実行コマンドを正しく指定してください。");
             return;
         }
 
+        String aliasName = sanitizeAliasInput(aliasTokens);
+        if (aliasName.isEmpty()) {
+            sender.sendMessage(PREFIX + ChatColor.RED + "エイリアス名を正しく指定してください。");
+            return;
+        }
+
         if (!aliasManager.isValidAlias(aliasName)) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "使用できないエイリアスです。記号や空白は使用できません。(例: spawn)");
+            sender.sendMessage(PREFIX + ChatColor.RED + "使用できないエイリアスです。各単語は英数字と _-:. のみ使用できます。(例: gm 1)");
             return;
         }
 
@@ -81,17 +109,22 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
         }
 
         sender.sendMessage(PREFIX + ChatColor.GREEN + String.format("/%s を実行すると /%s が実行されます。", aliasName, stripLeadingSlash(execCommand)));
-        sender.sendMessage(PREFIX + ChatColor.GRAY + "確認用: /" + aliasName + ChatColor.GRAY + " を試してみてください。");
     }
 
     private void handleRemove(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(PREFIX + ChatColor.YELLOW + "/alias remove <alias_command>");
+        sender.sendMessage(PREFIX + ChatColor.YELLOW + "/alias remove <alias_command...>");
             return;
         }
 
-        String aliasName = sanitizeAliasInput(args[1]);
-    Optional<AliasRecord> removed = aliasManager.removeAlias(aliasName);
+        List<String> aliasTokens = new ArrayList<>(Arrays.asList(args).subList(1, args.length));
+        String aliasName = sanitizeAliasInput(aliasTokens);
+        if (aliasName.isEmpty()) {
+            sender.sendMessage(PREFIX + ChatColor.RED + "エイリアス名を正しく指定してください。");
+            return;
+        }
+
+        Optional<AliasRecord> removed = aliasManager.removeAlias(aliasName);
         if (removed.isPresent()) {
             sender.sendMessage(PREFIX + ChatColor.GREEN + String.format("/%s のエイリアスを削除しました。", removed.get().alias()));
         } else {
@@ -141,8 +174,8 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
     private void sendUsage(CommandSender sender, String label) {
         String base = "/" + label.toLowerCase(Locale.ROOT);
         sender.sendMessage(PREFIX + ChatColor.YELLOW + "使い方:");
-        sender.sendMessage(ChatColor.GRAY + "- " + base + " add <exec_command...> <alias_command>");
-        sender.sendMessage(ChatColor.GRAY + "- " + base + " remove <alias_command>");
+        sender.sendMessage(ChatColor.GRAY + "- " + base + " add <exec_command...> by <alias_command...>");
+        sender.sendMessage(ChatColor.GRAY + "- " + base + " remove <alias_command...>");
         sender.sendMessage(ChatColor.GRAY + "- " + base + " list [page]");
     }
 
@@ -173,6 +206,20 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
             return partialMatches(args[1], pageNumbers);
         }
 
+        if ("add".equalsIgnoreCase(args[0])) {
+            boolean hasExec = false;
+            for (int i = 1; i < args.length; i++) {
+                if ("by".equalsIgnoreCase(args[i])) {
+                    hasExec = true;
+                    break;
+                }
+            }
+            if (!hasExec) {
+                return partialMatches(args[args.length - 1], List.of("by"));
+            }
+            return Collections.emptyList();
+        }
+
         return Collections.emptyList();
     }
 
@@ -190,30 +237,24 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
         return matches;
     }
 
-    private String stripLeadingSlash(String command) {
-        if (command == null) {
+    private String sanitizeAliasInput(List<String> tokens) {
+        if (tokens == null || tokens.isEmpty()) {
             return "";
         }
-        String trimmed = command.trim();
-        return trimmed.startsWith("/") ? trimmed.substring(1) : trimmed;
-    }
-
-    private String sanitizeAliasInput(String rawAlias) {
-        if (rawAlias == null) {
-            return "";
-        }
-        String unquoted = stripWrappingQuotes(rawAlias.trim());
-        return stripLeadingSlash(unquoted);
-    }
-
-    private String sanitizeExecutionCommand(String[] args) {
-        if (args.length < 3) {
-            return "";
-        }
-
-        String joined = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length - 1));
+        String joined = String.join(" ", tokens);
         String unquoted = stripWrappingQuotes(joined.trim());
-        return stripLeadingSlash(unquoted);
+        String withoutSlash = stripLeadingSlash(unquoted);
+        return collapseWhitespace(withoutSlash);
+    }
+
+    private String sanitizeExecutionCommand(List<String> tokens) {
+        if (tokens == null || tokens.isEmpty()) {
+            return "";
+        }
+        String joined = String.join(" ", tokens);
+        String unquoted = stripWrappingQuotes(joined.trim());
+        String withoutSlash = stripLeadingSlash(unquoted);
+        return collapseWhitespace(withoutSlash);
     }
 
     private String stripWrappingQuotes(String value) {
@@ -229,5 +270,20 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
             }
         }
         return trimmed;
+    }
+
+    private String stripLeadingSlash(String command) {
+        if (command == null) {
+            return "";
+        }
+        String trimmed = command.trim();
+        if (trimmed.startsWith("/")) {
+            return trimmed.substring(1).trim();
+        }
+        return trimmed;
+    }
+
+    private String collapseWhitespace(String value) {
+        return value == null ? "" : value.trim().replaceAll("\\s+", " ");
     }
 }

@@ -15,7 +15,7 @@ public final class AliasPlugin extends JavaPlugin {
         aliasManager = new AliasManager(this);
         aliasManager.reload();
 
-    AliasCommand aliasCommand = new AliasCommand(aliasManager);
+        AliasCommand aliasCommand = new AliasCommand(aliasManager);
         PluginCommand command = getCommand("alias");
         if (command == null) {
             getLogger().severe("Failed to register /alias command. Check plugin.yml configuration.");

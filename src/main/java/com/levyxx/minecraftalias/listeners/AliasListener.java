@@ -1,6 +1,7 @@
 package com.levyxx.minecraftalias.listeners;
 
 import com.levyxx.minecraftalias.AliasManager;
+import com.levyxx.minecraftalias.AliasManager.AliasRecord;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -11,6 +12,7 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -66,21 +68,17 @@ public final class AliasListener implements Listener {
             return Optional.empty();
         }
 
-        String[] parts = raw.split("\\s+");
-        String label = parts[0];
-        List<String> args = new ArrayList<>();
-        if (parts.length > 1) {
-            for (int i = 1; i < parts.length; i++) {
-                args.add(parts[i]);
-            }
+        List<String> tokens = tokenize(raw);
+        if (tokens.isEmpty()) {
+            return Optional.empty();
         }
 
-        Optional<String> resolved = aliasManager.resolveCommand(label, args);
+        Optional<String> resolved = aliasManager.resolveCommand(tokens);
         if (resolved.isEmpty()) {
-            if (aliasManager.getAlias(label).isPresent()) {
+            findMatchingAlias(tokens).ifPresent(match -> {
                 sender.sendMessage(PREFIX + ChatColor.RED + "エイリアスの解決に失敗しました。循環参照がないか確認してください。");
-                logger.warning(() -> "Failed to resolve alias '/" + label + "' due to potential loop.");
-            }
+                logger.warning(() -> "Failed to resolve alias '/" + match.alias() + "' due to potential loop.");
+            });
             return Optional.empty();
         }
 
@@ -90,6 +88,41 @@ public final class AliasListener implements Listener {
         }
 
         return Optional.of(new ResolvedCommand(commandLine));
+    }
+
+    private List<String> tokenize(String raw) {
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) {
+            return List.of();
+        }
+        return new ArrayList<>(Arrays.asList(trimmed.split("\\s+")));
+    }
+
+    private Optional<AliasRecord> findMatchingAlias(List<String> tokens) {
+        AliasRecord best = null;
+        int bestLength = 0;
+
+        for (AliasRecord record : aliasManager.listAliases()) {
+            List<String> aliasTokens = record.aliasTokens();
+            if (aliasTokens.size() > tokens.size()) {
+                continue;
+            }
+
+            boolean matches = true;
+            for (int i = 0; i < aliasTokens.size(); i++) {
+                if (!aliasTokens.get(i).equalsIgnoreCase(tokens.get(i))) {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if (matches && aliasTokens.size() > bestLength) {
+                best = record;
+                bestLength = aliasTokens.size();
+            }
+        }
+
+        return Optional.ofNullable(best);
     }
 
     private String applyPlayerPlaceholders(String commandLine, Player player) {
