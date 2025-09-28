@@ -41,18 +41,18 @@ public final class AliasManager {
             return false;
         }
 
-        String normalized = normalizeTokens(aliasTokens);
-        if (aliases.containsKey(normalized)) {
+        String normalizedAlias = normalizeTokens(aliasTokens);
+        if (aliases.containsKey(normalizedAlias)) {
             return false;
         }
 
-        String sanitizedCommand = sanitizeCommand(targetCommand);
-        if (sanitizedCommand.isEmpty()) {
+        String sanitizedTargetCommand = sanitizeCommand(targetCommand);
+        if (sanitizedTargetCommand.isEmpty()) {
             return false;
         }
 
-        AliasRecord record = new AliasRecord(joinTokens(aliasTokens), aliasTokens, sanitizedCommand);
-        aliases.put(normalized, record);
+        AliasRecord record = new AliasRecord(joinTokens(aliasTokens), aliasTokens, sanitizedTargetCommand);
+        aliases.put(normalizedAlias, record);
         save();
         return true;
     }

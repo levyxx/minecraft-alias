@@ -85,13 +85,13 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
         List<String> execTokens = new ArrayList<>(Arrays.asList(args).subList(1, byIndex));
         List<String> aliasTokens = new ArrayList<>(Arrays.asList(args).subList(byIndex + 1, args.length));
 
-        String execCommand = sanitizeExecutionCommand(execTokens);
+        String execCommand = sanitizeCommand(execTokens);
         if (execCommand.isEmpty()) {
             sender.sendMessage(PREFIX + ChatColor.RED + "実行コマンドを正しく指定してください。");
             return;
         }
 
-        String aliasName = sanitizeAliasInput(aliasTokens);
+        String aliasName = sanitizeCommand(aliasTokens);
         if (aliasName.isEmpty()) {
             sender.sendMessage(PREFIX + ChatColor.RED + "エイリアス名を正しく指定してください。");
             return;
@@ -113,12 +113,12 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
 
     private void handleRemove(CommandSender sender, String[] args) {
         if (args.length < 2) {
-        sender.sendMessage(PREFIX + ChatColor.YELLOW + "/alias remove <alias_command...>");
+            sender.sendMessage(PREFIX + ChatColor.YELLOW + "/alias remove <alias_command...>");
             return;
         }
 
         List<String> aliasTokens = new ArrayList<>(Arrays.asList(args).subList(1, args.length));
-        String aliasName = sanitizeAliasInput(aliasTokens);
+        String aliasName = sanitizeCommand(aliasTokens);
         if (aliasName.isEmpty()) {
             sender.sendMessage(PREFIX + ChatColor.RED + "エイリアス名を正しく指定してください。");
             return;
@@ -134,6 +134,11 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
 
     private void handleList(CommandSender sender, String[] args) {
         int page = 1;
+        if (args.length >= 3) {
+            sender.sendMessage(PREFIX + ChatColor.YELLOW + "/alias list [page]");
+            return;
+        }
+
         if (args.length >= 2) {
             try {
                 page = Integer.parseInt(args[1]);
@@ -190,7 +195,8 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 2 && "remove".equalsIgnoreCase(args[0])) {
-            return aliasManager.listAliases().stream()
+            return aliasManager.listAliases()
+                    .stream()
                     .map(AliasRecord::alias)
                     .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT)))
                     .sorted(String.CASE_INSENSITIVE_ORDER)
@@ -237,17 +243,7 @@ public final class AliasCommand implements CommandExecutor, TabCompleter {
         return matches;
     }
 
-    private String sanitizeAliasInput(List<String> tokens) {
-        if (tokens == null || tokens.isEmpty()) {
-            return "";
-        }
-        String joined = String.join(" ", tokens);
-        String unquoted = stripWrappingQuotes(joined.trim());
-        String withoutSlash = stripLeadingSlash(unquoted);
-        return collapseWhitespace(withoutSlash);
-    }
-
-    private String sanitizeExecutionCommand(List<String> tokens) {
+    private String sanitizeCommand(List<String> tokens) {
         if (tokens == null || tokens.isEmpty()) {
             return "";
         }
