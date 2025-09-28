@@ -59,7 +59,7 @@ https://papermc.io/downloads から paper を選択し、Paper x.x.xをダウン
 ダウンロードした.jarファイルを以下のコマンドで実行する。
 
 ```bash
-$ java -Xmx2G -jar paper-1.21.8-60.jar nogui
+java -Xmx2G -jar paper-1.21.8-60.jar nogui
 ```
 
 初回実行時、同ディレクトリに eula.txtが作成されるので、内容を以下に変更して保存する。
@@ -71,7 +71,7 @@ eula=true
 再度サーバーを起動する。Done! と表示されればOK。
 
 ```bash
-$ java -Xmx2G -jar paper-1.21.8-60.jar nogui
+java -Xmx2G -jar paper-1.21.8-60.jar nogui
 ```
 
 ### .jarファイルのビルド
@@ -79,13 +79,13 @@ $ java -Xmx2G -jar paper-1.21.8-60.jar nogui
 以下のコマンドでjava-17を選択する。
 
 ```bash
-$ sudo update-alternatives --config java
+sudo update-alternatives --config java
 ```
 
 以下のコマンドで.jarファイルをビルドする。
 
 ```bash
-$ mvn clean package
+mvn clean package
 ```
 
 ### pluginの導入
@@ -93,13 +93,13 @@ $ mvn clean package
 サーバーのpluginsフォルダに既に.jarファイルがあれば削除する。
 
 ```bash
-$ rm -rf ./minecraft-alias-1.0.0-SNAPSHOT.jar
+rm -rf ./minecraft-alias-1.0.0-SNAPSHOT.jar
 ```
 
 ビルドした.jarファイルを配置する。(↓コマンドの例)
 
 ```bash
-$ mv ~/minecraft/minecraft-alias/target/minecraft-alias-1.0.0-SNAPSHOT.jar .
+mv ~/minecraft/minecraft-alias/target/minecraft-alias-1.0.0-SNAPSHOT.jar .
 ```
 
 ### サーバーの起動
@@ -107,13 +107,13 @@ $ mv ~/minecraft/minecraft-alias/target/minecraft-alias-1.0.0-SNAPSHOT.jar .
 .jarファイルを最初に実行したときのjavaのバージョンに変更する(例 java-21)
 
 ```bash
-$ sudo update-alternatives --config java
+sudo update-alternatives --config java
 ```
 
 以下のコマンドでサーバーを起動する。
 
 ```bash
-$ java -Xmx2G -jar paper-1.21.8-60.jar nogui
+java -Xmx2G -jar paper-1.21.8-60.jar nogui
 ```
 
 ### サーバーに入る
